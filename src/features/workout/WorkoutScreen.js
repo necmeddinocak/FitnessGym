@@ -884,7 +884,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: spacing.md,
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.md,
   },
   createButton: {
     backgroundColor: colors.surface,
@@ -914,7 +915,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   listContent: {
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.sm,
   },
   programCard: {
     marginBottom: spacing.md,

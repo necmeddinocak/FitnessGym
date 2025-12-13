@@ -99,12 +99,20 @@ const ProfileEditScreen = ({ navigation }) => {
     }
   };
 
+  const Container = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
+  const containerProps = Platform.OS === 'ios' 
+    ? { behavior: 'padding', style: styles.container }
+    : { style: styles.container };
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <Container {...containerProps}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardDismissMode="none"
+          keyboardShouldPersistTaps="always"
+          showsVerticalScrollIndicator={true}
+        >
         {/* Personal Info */}
         <Card style={styles.card}>
           <Text style={styles.sectionTitle}>Kişisel Bilgiler</Text>
@@ -219,8 +227,8 @@ const ProfileEditScreen = ({ navigation }) => {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+    </Container>
   );
 };
 
@@ -229,7 +237,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
+    flexGrow: 1,
     padding: spacing.md,
   },
   card: {

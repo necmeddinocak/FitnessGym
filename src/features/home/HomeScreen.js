@@ -10,9 +10,7 @@ import {
   getWorkoutHistoryByDateRange, 
   getWeightHistory, 
   getWeeklyVolumeStats, 
-  getLatestPR,
-  scheduleWeeklySummaryNotification,
-  loadNotificationSettings
+  getLatestPR
 } from '../../services';
 
 const HomeScreen = ({ navigation }) => {
@@ -71,21 +69,6 @@ const HomeScreen = ({ navigation }) => {
         weekDays.push({ date: dateStr, completed: hasWorkout });
       }
       setWeeklyWorkouts(weekDays);
-      
-      // Haftalık antrenman sayısını hesapla ve bildirimi güncelle
-      const completedCount = weekDays.filter(w => w.completed).length;
-      
-      // Bildirim ayarlarını yükle ve haftalık özet bildirimini güncelle
-      try {
-        const settings = await loadNotificationSettings();
-        
-        // Haftalık özet bildirimini güncelle (doğru workout sayısıyla)
-        if (settings?.weeklySummary) {
-          await scheduleWeeklySummaryNotification(completedCount);
-        }
-      } catch (notifError) {
-        console.log('Bildirim ayarları yüklenemedi:', notifError);
-      }
       
       // Get weekly volume stats
       const weeklyVolume = await getWeeklyVolumeStats(userId);

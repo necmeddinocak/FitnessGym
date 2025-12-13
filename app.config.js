@@ -16,6 +16,7 @@ export default {
     },
     ios: {
       supportsTablet: true,
+      bundleIdentifier: "com.fitnessgym.app",
       infoPlist: {
         UIBackgroundModes: ["remote-notification"]
       }
@@ -27,7 +28,8 @@ export default {
         backgroundColor: "#ffffff"
       },
       edgeToEdgeEnabled: true,
-      useNextNotificationsApi: true
+      useNextNotificationsApi: true,
+      softwareKeyboardLayoutMode: "pan"
     },
     web: {
       favicon: "./assets/favicon.png"
@@ -45,6 +47,9 @@ export default {
     extra: {
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      eas: {
+        projectId: "b204e40a-8fb9-4f15-9e12-07f66d2f49d9"
+      }
     }
   }
 };

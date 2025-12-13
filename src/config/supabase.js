@@ -28,6 +28,10 @@ let currentUserId = null;
  * This is used for app logic - RLS is temporarily relaxed
  */
 export const setSupabaseUserId = (userId) => {
+  // Aynı userId tekrar set ediliyorsa, gereksiz log yazdırma
+  if (currentUserId === userId) {
+    return;
+  }
   currentUserId = userId;
   console.log('User ID set:', userId);
 };

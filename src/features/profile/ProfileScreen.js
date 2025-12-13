@@ -1754,8 +1754,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textMuted,
     textAlign: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.xl,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
   // Modal Styles
   modalOverlay: {

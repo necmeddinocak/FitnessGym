@@ -6,7 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Bildirim ayarları
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -86,6 +87,7 @@ export async function getDaysSinceLastLogin() {
 }
 
 // Haftalık özet bildirimini planla (Her Pazar 22:00)
+// Bu fonksiyon sadece kullanıcı profil ayarlarından bildirimi açtığında çağrılır
 export async function scheduleWeeklySummaryNotification(workoutCount) {
   // Mevcut haftalık özet bildirimlerini iptal et
   const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
@@ -97,17 +99,26 @@ export async function scheduleWeeklySummaryNotification(workoutCount) {
 
   // Bir sonraki Pazar gününü hesapla
   const now = new Date();
-  const daysUntilSunday = (7 - now.getDay()) % 7;
-  const nextSunday = new Date(now);
+  const currentDay = now.getDay(); // 0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi
+  let daysUntilSunday = (7 - currentDay) % 7;
   
-  // Eğer bugün Pazar ve saat 22:00'yi geçtiyse, bir sonraki Pazar'a planla
-  if (daysUntilSunday === 0 && now.getHours() >= 22) {
-    nextSunday.setDate(nextSunday.getDate() + 7);
-  } else {
-    nextSunday.setDate(nextSunday.getDate() + daysUntilSunday);
+  // Eğer bugün Pazar ise, bir sonraki Pazar'a planla
+  if (daysUntilSunday === 0) {
+    daysUntilSunday = 7;
   }
   
+  const nextSunday = new Date(now);
+  nextSunday.setDate(nextSunday.getDate() + daysUntilSunday);
   nextSunday.setHours(22, 0, 0, 0);
+
+  // Saniye cinsinden ne kadar sonra bildirim gönderileceğini hesapla
+  const secondsUntilNotification = Math.floor((nextSunday.getTime() - Date.now()) / 1000);
+  
+  // Minimum 1 saat (3600 saniye) olmalı - güvenlik kontrolü
+  if (secondsUntilNotification < 3600) {
+    console.log('Haftalık özet bildirimi: Süre çok kısa, planlanmadı.');
+    return;
+  }
 
   // Mesajı belirle
   let message;
@@ -121,6 +132,7 @@ export async function scheduleWeeklySummaryNotification(workoutCount) {
     message = `Bu hafta ${workoutCount} gün antrenman yaptın, harika iş! 💪`;
   }
 
+  // Haftalık özet bildirimi - saniye cinsinden gecikme ile
   await Notifications.scheduleNotificationAsync({
     content: {
       title: '📊 Haftalık Özetin',
@@ -129,31 +141,17 @@ export async function scheduleWeeklySummaryNotification(workoutCount) {
       data: { type: 'weekly-summary' },
     },
     trigger: {
-      date: nextSunday,
-    },
-  });
-
-  // Haftalık tekrarlayan bildirim için (her Pazar 22:00)
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: '📊 Haftalık Özetin',
-      body: 'Bu haftaki performansını kontrol etmeye ne dersin?',
-      sound: true,
-      data: { type: 'weekly-summary-recurring' },
-    },
-    trigger: {
-      weekday: 1, // 1 = Pazar (expo-notifications'da)
-      hour: 22,
-      minute: 0,
-      repeats: true,
+      seconds: secondsUntilNotification,
     },
   });
 
   await AsyncStorage.setItem(WEEKLY_SUMMARY_SCHEDULED_KEY, 'true');
-  console.log('Haftalık özet bildirimi planlandı:', nextSunday.toLocaleString('tr-TR'));
+  const notificationDate = new Date(Date.now() + secondsUntilNotification * 1000);
+  console.log('Haftalık özet bildirimi planlandı:', notificationDate.toLocaleString('tr-TR'), `(${Math.floor(secondsUntilNotification / 3600)} saat sonra)`);
 }
 
 // Motivasyon hatırlatıcısı (3 gün giriş yapmayanlara)
+// Bu fonksiyon sadece kullanıcı profil ayarlarından bildirimi açtığında çağrılır
 export async function scheduleMotivationReminder() {
   // Mevcut motivasyon bildirimlerini iptal et
   const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
@@ -163,10 +161,19 @@ export async function scheduleMotivationReminder() {
     }
   }
 
-  // 3 gün sonrası için bildirim planla
+  // 3 gün sonrası için bildirim planla (akşam 18:00)
   const triggerDate = new Date();
   triggerDate.setDate(triggerDate.getDate() + 3);
-  triggerDate.setHours(18, 0, 0, 0); // Akşam 18:00'de gönder
+  triggerDate.setHours(18, 0, 0, 0);
+
+  // Saniye cinsinden ne kadar sonra bildirim gönderileceğini hesapla
+  const secondsUntilNotification = Math.floor((triggerDate.getTime() - Date.now()) / 1000);
+  
+  // Minimum 1 saat (3600 saniye) olmalı - güvenlik kontrolü
+  if (secondsUntilNotification < 3600) {
+    console.log('Motivasyon hatırlatıcısı: Süre çok kısa, planlanmadı.');
+    return;
+  }
 
   const motivationMessages = [
     'Seni özledik! 💪 Antrenmana geri dönmeye hazır mısın?',
@@ -185,11 +192,12 @@ export async function scheduleMotivationReminder() {
       data: { type: 'motivation' },
     },
     trigger: {
-      date: triggerDate,
+      seconds: secondsUntilNotification,
     },
   });
 
-  console.log('Motivasyon hatırlatıcısı planlandı:', triggerDate.toLocaleString('tr-TR'));
+  const notificationDate = new Date(Date.now() + secondsUntilNotification * 1000);
+  console.log('Motivasyon hatırlatıcısı planlandı:', notificationDate.toLocaleString('tr-TR'), `(${Math.floor(secondsUntilNotification / 3600)} saat sonra)`);
 }
 
 // Motivasyon hatırlatıcısını iptal et (kullanıcı giriş yaptığında)
@@ -236,54 +244,25 @@ export async function getScheduledNotifications() {
   return await Notifications.getAllScheduledNotificationsAsync();
 }
 
-// Bildirimlerin bugün zaten başlatılıp başlatılmadığını kontrol et
-const NOTIFICATIONS_INITIALIZED_TODAY_KEY = 'notifications_initialized_date';
-
-async function isNotificationsInitializedToday() {
-  const lastInitDate = await AsyncStorage.getItem(NOTIFICATIONS_INITIALIZED_TODAY_KEY);
-  const today = new Date().toISOString().split('T')[0];
-  return lastInitDate === today;
-}
-
-async function markNotificationsInitialized() {
-  const today = new Date().toISOString().split('T')[0];
-  await AsyncStorage.setItem(NOTIFICATIONS_INITIALIZED_TODAY_KEY, today);
-}
-
 // Bildirimleri başlat (uygulama açıldığında çağrılacak)
+// NOT: Bu fonksiyon artık otomatik bildirim planlamıyor.
+// Bildirimler sadece kullanıcı profil ayarlarından manuel olarak açtığında planlanır.
 export async function initializeNotifications(workoutCount = 0, forceReinitialize = false) {
-  // Bugün zaten başlatıldıysa ve zorla başlatma istenmiyorsa, atla
-  if (!forceReinitialize && await isNotificationsInitializedToday()) {
-    console.log('Bildirimler bugün zaten başlatılmış, atlanıyor...');
-    return true;
-  }
-
+  // Bildirim izinlerini al ve kanalları oluştur
   const permissionGranted = await registerForPushNotifications();
   
   if (!permissionGranted) {
     return false;
   }
-
-  const settings = await loadNotificationSettings();
   
-  // Son giriş tarihini güncelle
+  // Son giriş tarihini güncelle (motivasyon bildirimi için önemli)
   await updateLastLoginDate();
   
-  // Motivasyon hatırlatıcısını iptal et (kullanıcı giriş yaptı)
+  // Kullanıcı uygulamayı açtı, mevcut motivasyon hatırlatıcısını iptal et
+  // (Çünkü artık aktif kullanıcı)
   await cancelMotivationReminder();
   
-  // Yeni motivasyon hatırlatıcısı planla (3 gün sonra)
-  if (settings.motivationReminder) {
-    await scheduleMotivationReminder();
-  }
-  
-  // Haftalık özet bildirimini planla
-  if (settings.weeklySummary) {
-    await scheduleWeeklySummaryNotification(workoutCount);
-  }
-  
-  // Bugün başlatıldı olarak işaretle
-  await markNotificationsInitialized();
+  console.log('Bildirim sistemi hazır. Bildirimler profil ayarlarından yönetilebilir.');
   
   return true;
 }
